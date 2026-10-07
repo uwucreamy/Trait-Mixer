@@ -225,6 +225,7 @@ if not spr then app.alert("No active sprite open.") return end
 local dlg = Dialog("Trait Mixer")
 dlg:number{ id="count", label="How many?", text="10", decimals=0 }
 dlg:entry { id="prefix", label="File name prefix", text="token_" }
+dlg:entry { id="displayPrefix", label="Token name prefix (optional)", text="" }
 dlg:number{ id="start", label="First token #", text="1", decimals=0 }
 
 dlg:combobox{
@@ -258,6 +259,10 @@ if not data or data.go == false then return end
 
 local count = math.max(1, tonumber(data.count) or 1)
 local prefix = tostring(data.prefix or "token_")
+local displayPrefix = tostring(data.displayPrefix or ""):gsub("^%s+", ""):gsub("%s+$", "")
+if displayPrefix == "" then
+  displayPrefix = prefix:gsub("_", " "):gsub("%s+$", "")
+end
 local startIndex = math.max(0, tonumber(data.start) or 1)
 local maxAttempts = math.max(1, tonumber(data.maxAttempts) or 2000)
 local description = tostring(data.desc or "")
@@ -373,17 +378,19 @@ for i = 0, count - 1 do
   end
 
   local tokenNumber = startIndex + produced
-  local name = prefix .. pad(tokenNumber, 4)
-  local pngFile = name .. ".png"
+  local paddedNumber = pad(tokenNumber, 4)
+  local fileStem = prefix .. paddedNumber
+  local displayName = displayPrefix .. " " .. paddedNumber
+  local pngFile = fileStem .. ".png"
   local pngPath = app.fs.joinPath(outputDir, pngFile)
 
   outImg:saveAs(pngPath)
 
   -- per-token JSON
   if data.perTokenJson then
-    local jsonPath = app.fs.joinPath(outputDir, name .. ".json")
+    local jsonPath = app.fs.joinPath(outputDir, fileStem .. ".json")
     local tokenObj = {
-      name = name,
+      name = displayName,
       description = description,
       image = pngFile,
       attributes = attributesArray
@@ -398,7 +405,7 @@ for i = 0, count - 1 do
     openseaRows[#openseaRows+1] = {
       tokenID = tokenNumber, -- Studio maps rows by token ID.
       file_name = pngFile,
-      name = name,
+      name = displayName,
       description = description,
       traits = traits
     }
